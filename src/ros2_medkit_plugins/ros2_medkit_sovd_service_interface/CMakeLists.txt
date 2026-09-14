@@ -54,7 +54,7 @@ medkit_target_dependencies(sovd_service_interface
 
 # Allow unresolved symbols - they resolve from the host process at runtime
 target_link_options(sovd_service_interface PRIVATE
-  -Wl,--unresolved-symbols=ignore-all
+  "$<IF:$<PLATFORM_ID:Darwin>,-Wl$<COMMA>-undefined$<COMMA>dynamic_lookup,-Wl$<COMMA>--unresolved-symbols=ignore-all>"
 )
 
 target_link_libraries(sovd_service_interface
