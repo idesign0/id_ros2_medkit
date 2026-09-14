@@ -185,8 +185,13 @@ medkit_target_dependencies(ros2_medkit_opcua_plugin
 )
 
 target_link_options(ros2_medkit_opcua_plugin PRIVATE
+  # GNU ld flags, kept verbatim for non-Apple targets.
+  #
+  # Apple's ld64 accepts none of these three -- verified, each is rejected with
+  # "ld: unknown options:" -- so each is now emitted only off-Darwin and paired with
+  # its Mach-O equivalent below.
   # Allow unresolved symbols - they resolve from the host process at runtime.
-  -Wl,--unresolved-symbols=ignore-all
+  "$<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl$<COMMA>--unresolved-symbols=ignore-all>"
   # -fvisibility=hidden covers the sources compiled into this module, but not
   # the static archives it links. Without this, every global in the vendored
   # open62541 lands in the module's dynamic symbol table, so the read-only
@@ -195,11 +200,27 @@ target_link_options(ros2_medkit_opcua_plugin PRIVATE
   # the module happens to pull in. The plugin's extern "C" entry points come
   # from object files, not archives, and keep their GATEWAY_PLUGIN_EXPORT
   # visibility.
-  -Wl,--exclude-libs,ALL
+  "$<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl$<COMMA>--exclude-libs$<COMMA>ALL>"
   # Then actually drop what nothing reaches. Retention starts from the dynamic
   # symbol table, so this only becomes effective once --exclude-libs has emptied
   # it of the library's globals - the two belong together.
-  -Wl,--gc-sections
+  "$<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl$<COMMA>--gc-sections>"
+  # macOS equivalents:
+  #   --unresolved-symbols=ignore-all  ->  -undefined dynamic_lookup
+  #     Same contract: leave the plugin's undefined symbols to be bound from the host
+  #     process at load time.
+  #   --gc-sections                    ->  -dead_strip
+  #     Same contract: drop what nothing reaches.
+  #   --exclude-libs,ALL               ->  (no equivalent, intentionally omitted)
+  #     ld64 has no "hide every archive's globals" switch; the nearest tools are
+  #     -hidden-l<lib> per library and -unexported_symbols_list, neither of which maps
+  #     to ALL. It is also less needed here: unlike GNU ld, ld64 does not promote a
+  #     static archive's globals into the dylib's export table just because they were
+  #     linked in, and -fvisibility=hidden (already set on this target) covers the
+  #     sources. The plugin's extern "C" entry points keep their explicit
+  #     GATEWAY_PLUGIN_EXPORT visibility either way.
+  "$<$<PLATFORM_ID:Darwin>:-Wl$<COMMA>-undefined$<COMMA>dynamic_lookup>"
+  "$<$<PLATFORM_ID:Darwin>:-Wl$<COMMA>-dead_strip>"
 )
 
 target_link_libraries(ros2_medkit_opcua_plugin
