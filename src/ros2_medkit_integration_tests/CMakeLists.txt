@@ -149,7 +149,7 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 # (MODULE, unresolved symbols provided by the host process).
 add_library(topics_test_plugin MODULE test_plugins/topics_test_plugin.cpp)
 medkit_target_dependencies(topics_test_plugin ros2_medkit_gateway rclcpp std_msgs)
-target_link_options(topics_test_plugin PRIVATE -Wl,--unresolved-symbols=ignore-all)
+target_link_options(topics_test_plugin PRIVATE "$<IF:$<PLATFORM_ID:Darwin>,-Wl$<COMMA>-undefined$<COMMA>dynamic_lookup,-Wl$<COMMA>--unresolved-symbols=ignore-all>")
 set_target_properties(topics_test_plugin PROPERTIES OUTPUT_NAME "topics_test_plugin")
 install(TARGETS topics_test_plugin LIBRARY DESTINATION lib/${PROJECT_NAME})
 

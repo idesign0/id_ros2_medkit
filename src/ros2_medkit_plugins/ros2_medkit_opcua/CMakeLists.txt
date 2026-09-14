@@ -134,7 +134,7 @@ medkit_target_dependencies(ros2_medkit_opcua_plugin
 
 # Allow unresolved symbols - they resolve from the host process at runtime
 target_link_options(ros2_medkit_opcua_plugin PRIVATE
-  -Wl,--unresolved-symbols=ignore-all
+  "$<IF:$<PLATFORM_ID:Darwin>,-Wl$<COMMA>-undefined$<COMMA>dynamic_lookup,-Wl$<COMMA>--unresolved-symbols=ignore-all>"
 )
 
 target_link_libraries(ros2_medkit_opcua_plugin
