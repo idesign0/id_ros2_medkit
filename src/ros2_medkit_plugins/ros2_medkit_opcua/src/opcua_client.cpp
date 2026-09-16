@@ -160,7 +160,10 @@ OpcuaValue variant_to_value(const opcua::Variant & var) {
     // OpcuaValue slot). Exercised by auto_browse's DateTime->"string"
     // mapping (e.g. a "TIMESTAMP" field on an alarm DB) and by any
     // hand-written node_map entry that points at a DateTime node.
-    const auto tp = var.getScalarCopy<opcua::DateTime>().toTimePoint<std::chrono::system_clock>();
+    // toTimePoint() yields a 100ns-tick time_point (ratio<1,10000000>); macOS system_clock uses
+    // microsecond ticks (ratio<1,1000000>), and that narrowing is not an implicit conversion.
+    const auto tp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+      var.getScalarCopy<opcua::DateTime>().toTimePoint<std::chrono::system_clock>());
     const std::time_t tt = std::chrono::system_clock::to_time_t(tp);
     std::tm tm_utc{};
     if (gmtime_r(&tt, &tm_utc) == nullptr) {
