@@ -303,4 +303,14 @@ macro(medkit_target_dependencies target)
     unset(_mtd_private_deps)
     unset(_mtd_interface_deps)
   endif()
+
+  # macOS: medkit MODULE plugins reference ros2_medkit_gateway symbols that are compiled into the
+  # host process -- gateway exports only include dirs (no linkable CMake target), so the plugin's
+  # own link cannot resolve them. Allow undefined symbols; they bind at plugin-load time (the same
+  # guard a few plugins already carry explicitly). Linux tolerates this by default.
+  get_target_property(_mtd_target_type ${target} TYPE)
+  if(APPLE AND "${_mtd_target_type}" STREQUAL "MODULE_LIBRARY")
+    target_link_options(${target} PRIVATE "SHELL:-undefined dynamic_lookup")
+  endif()
+  unset(_mtd_target_type)
 endmacro()
